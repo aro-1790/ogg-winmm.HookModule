@@ -5,13 +5,13 @@ FILEVERSION __REV__
     {
         BLOCK "040904B0"
         {
-            VALUE "ProductName", "ogg-winmm"
+            VALUE "ProductName", "ogg-winmm HookModule"
             VALUE "ProductVersion", "__REV__"
-            VALUE "InternalName", "ogg-winmm"
-            VALUE "LegalCopyright", "AyuanX"
-            VALUE "OriginalFileName", "ogg-winmm.dll"
-            VALUE "FileDescription", "Windows CD-DA Audio Emulator"
-            VALUE "Comments", "https://github.com/ayuanx/ogg-winmm.git"
+            VALUE "InternalName", "ogg-winmm HookModule"
+            VALUE "LegalCopyright", "AyuanX, samuelgr and everyone else!"
+            VALUE "OriginalFileName", "ogg-winmm.HookModule.32.dll"
+            VALUE "FileDescription", "CD-DA Emulator HookModule"
+            VALUE "Comments", "https://github.com/instinctualjealousy/ogg-winmm.HookModule.git"
         }
     }
 
