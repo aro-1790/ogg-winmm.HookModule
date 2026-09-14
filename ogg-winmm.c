@@ -126,11 +126,11 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 #ifdef _DEBUG
 		fh = fopen("winmm.log", "w");
 #endif
-		GetModuleFileName(hinstDLL, path, sizeof(path));
+		GetModuleFileName(NULL, path, sizeof(path));
 
-		char *last = strrchr(path, '.');
+		char *last = strrchr(path, '\\');
 		if (last) {
-			strcpy(last, ".ini");
+			strcpy(last + 1, "ogg-winmm.ini");
 
 			GetPrivateProfileString("OGG-WinMM", "CDDAPath", "Music", cddaPath, MAX_PATH, path);
 			cddaVol = GetPrivateProfileInt("OGG-WinMM", "CDDAVolume", 100, path);

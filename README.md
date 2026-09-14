@@ -1,4 +1,20 @@
-# ogg-winmm CD Audio Emulator
+# ogg-winmm HookModule
+
+ogg-winmm, repackaged as a HookModule to be loaded with [samuelgr's Hookshot](https://github.com/samuelgr/Hookshot)
+
+I hate to tell you, but the AI bug bit me when [DeepSeek](https://www.deepseek.com/) was suddenly able to spit out some pretty complicated code 9/10 times without me getting compile errors. Still, I wanted my first GitHub foray into this to be respectful (later ones, not so much?? I tease.) The core code of [AyuanX's fork](https://github.com/ayuanx/ogg-winmm) is intact- I will be able to easily integrate their changes into later builds- only minimal changes were needed on my end. I should even be able to integrate other forks' improvements if recommended. I'm not a complete dumb dumb.
+
+**Just a warning: the Hookshot-specific glue-code is all vibes**. You better review it. It was prompted to match style of ogg-winmm code historically.
+I refuse to take credit for anything other than the ideas and the orchestration. The real credit goes to those who slaved over making this the best it could be over the years. If you have issues with this fork- don't go complain to anyone else involved unless it can be confirmed to be upstream. I think the only issues that should be reported are related to the HookModule implementation (outside of [Xidi](https://github.com/samuelgr/Xidi), I think this is the first published HookModule, so it might be doing something wrong).
+
+A breakdown of the actual changes:
+
+* **No more DLL replacement:** Rather than hoping the game'll hook on its own, it's built for usage with samuelgr's mighty Hookshot
+* **Bare minimum changes to core source:** A few necessary lines were changed in `ogg-winmm.c` due to changes in the execution- the settings file now has a hardcoded name, `ogg-winmm.ini`
+* **Hookshot integration:** Adds glue C++ to register hooks and a Hookshot-specific stubs file to handle those bouncy trampolines for `mci` and `waveOut` calls
+* **Build system changes:** Removed unnecessary files and updated for a dual-stage C/C++ build- uses UPX compression
+
+# Original readme (some details may not be applicable!)
 
 ogg-winmm is a wrapper of "winmm.dll", which is used by many games and programs to play CD-DA audio tracks.
 

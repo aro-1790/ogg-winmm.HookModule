@@ -1,0 +1,3 @@
+[submodule "Hookshot"]
+	path = Hookshot
+	url = https://github.com/samuelgr/Hookshot.git

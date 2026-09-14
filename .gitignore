@@ -1,3 +1,5 @@
-ogg-winmm.rc.o
-ogg-winmm.dll
-winmm.dll
+.vscode/
+release.ps1
+release/
+*.o
+ogg-winmm.HookModule.32.dll
