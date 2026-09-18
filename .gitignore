@@ -1,5 +1,5 @@
 .vscode/
-release.ps1
+*.sh
 release/
 *.o
 ogg-winmm.HookModule.32.dll
