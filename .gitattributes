@@ -1,0 +1,23 @@
+# Merge policy for tracking upstream (ayuanx/ogg-winmm). Applied by merge-upstream.sh.
+
+# Fork-owned - upstream content is never inherited
+/Makefile           merge=ours
+/ogg-winmm.rc.in    merge=ours
+/.gitignore         merge=ours
+/README.md          merge=ours
+
+# Explicit three-way - upstream's core fixes and our DllMain bootstrap both survive
+/ogg-winmm.c        merge=text
+
+# Upstream-owned - complete replacement, never a hunk-level merge
+/player.c           merge=theirs
+/player.h           merge=theirs
+/stub.h             merge=theirs
+
+# Deleted from upstream on purpose. No attribute can express this - a delete/modify
+# collision isn't a content merge, so merge-upstream.sh re-asserts them instead.
+#   stubs.c  ogg-winmm.def  Makefile.linuxMinGW  libs/**
+
+# Renamed files take upstream's content in full via rename detection
+#   resource/winmm.ini -> resource/ogg-winmm.ini
+#   LICENSE.txt        -> LICENSE-GPL

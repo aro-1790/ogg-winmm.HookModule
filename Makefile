@@ -1,10 +1,15 @@
-REV=$(shell sh -c 'date +"%Y,%m,%d"')
+# Version stamp written by version.sh, used verbatim as the comma-separated resource form
+REV=$(shell sed -e 's/^v//' -e 's/\./,/g' resource/version.txt)
+
+# Guard against a missing/empty version file (run ./version.sh first)
+CHECK_REV := test -n "$(REV)" || { echo "resource/version.txt is empty - run ./version.sh first" >&2; exit 1; }
 
 OBJECTS = ogg-winmm.o player.o hookshot_stubs.o hookshot_entry.o ogg-winmm.rc.o
 
 all: ogg-winmm.HookModule.32.dll
 
-ogg-winmm.rc.o: ogg-winmm.rc.in
+ogg-winmm.rc.o: ogg-winmm.rc.in resource/version.txt
+	@$(CHECK_REV)
 	sed 's/__REV__/$(REV)/' ogg-winmm.rc.in | windres -O coff -o ogg-winmm.rc.o
 
 %.o: %.c
