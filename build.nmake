@@ -20,6 +20,11 @@ LIBEXE  = "$(VCTOOLSINSTALLDIR)bin\Host$(HOSTARCH)\x86\lib.exe"
 DUMPBIN = "$(VCTOOLSINSTALLDIR)bin\Host$(HOSTARCH)\x86\dumpbin.exe"
 RC      = rc.exe
 
+# LIB lists x86 first, so the link names its own library directories.
+LIBPATH = /LIBPATH:"$(VCTOOLSINSTALLDIR)lib\x86" \
+          /LIBPATH:"$(WINDOWSSDKDIR)Lib\$(WINDOWSSDKVERSION)\ucrt\x86" \
+          /LIBPATH:"$(WINDOWSSDKDIR)Lib\$(WINDOWSSDKVERSION)\um\x86"
+
 # Hookshot picks this up as ogg-winmm.HookModule.32.dll, beside the game.
 DLL = ogg-winmm.HookModule.32.dll
 
@@ -147,8 +152,8 @@ obj\hookshot_entry.obj: hookshot_entry.cpp $(HDRS) obj
 	$(CL) $(CXXFLAGS) /Fo$@ hookshot_entry.cpp
 
 $(DLL): $(OBJS) $(RES) $(DEPS_LIBS)
-	$(CL) /nologo /Fe$(DLL) $(OBJS) $(RES) /link /DLL /MACHINE:X86 /OPT:REF /OPT:ICF /INCREMENTAL:NO \
-	    /IMPLIB:obj\ogg-winmm.HookModule.32.lib $(LIBS)
+	$(CL) /nologo /Fe$(DLL) $(OBJS) $(RES) /link /DLL /MACHINE:X86 \
+	    /IMPLIB:obj\ogg-winmm.HookModule.32.lib $(LIBS) $(LIBPATH)
 	@$(DUMPBIN) /exports $(DLL) | findstr /C:"HookshotMain" >NUL || (echo Error: HookshotMain is not exported from $(DLL) & exit 1)
 	@$(DUMPBIN) /headers $(DLL) | findstr /C:"14C machine" >NUL || (echo Error: $(DLL) is not a 32-bit binary & exit 1)
 	@(where upx >NUL 2>&1 && upx --best $(DLL)) || echo   upx not found or failed - leaving the DLL unpacked

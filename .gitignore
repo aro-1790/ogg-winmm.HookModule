@@ -1,7 +1,6 @@
 .vscode/
 *.sh
 release/
-*.o
 *.dll
 
 # MSVC build outputs
