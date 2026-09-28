@@ -1,19 +1,24 @@
 # ogg-winmm.HookModule - 32-bit Hookshot hook module, built with MSVC.
-# Run build.bat; nmake /f build.nmake also works from this directory.
-#
-# The pinned paths below are the only thing to edit, or override them:
-#   nmake /f build.nmake MSVC_TOOLSET=C:\other\VC\Tools\MSVC\14.xx
+# Run build.bat, or nmake /f build.nmake with the toolchain environment active.
+# Target is always x86; nmake upcases env names.
 # ------------------------------------------------------------------
 
-MSVC_TOOLSET = C:\MSVC\VC\Tools\MSVC\14.40.33807
-SDK_ROOT     = C:\MSVC\Windows Kits\10
-SDK_VER      = 10.0.26100.0
+# Target = the \x86\ half of the tool path; the host half is whichever one is installed.
+# build.bat picks an installed host, so this default only covers a bare `nmake`.
+!IFNDEF HOSTARCH
+!IFDEF PROCESSOR_ARCHITEW6432
+HOSTARCH = x64
+!ELSEIF "$(PROCESSOR_ARCHITECTURE)" == "x86"
+HOSTARCH = x86
+!ELSE
+HOSTARCH = x64
+!ENDIF
+!ENDIF
 
-# x86 is pinned by path: `where cl` would also match the x64-hosted one.
-CL       = "$(MSVC_TOOLSET)\bin\Hostx64\x86\cl.exe"
-LIBEXE   = "$(MSVC_TOOLSET)\bin\Hostx64\x86\lib.exe"
-DUMPBIN  = "$(MSVC_TOOLSET)\bin\Hostx64\x86\dumpbin.exe"
-RC       = "$(SDK_ROOT)\bin\$(SDK_VER)\x64\rc.exe"
+CL      = "$(VCTOOLSINSTALLDIR)bin\Host$(HOSTARCH)\x86\cl.exe"
+LIBEXE  = "$(VCTOOLSINSTALLDIR)bin\Host$(HOSTARCH)\x86\lib.exe"
+DUMPBIN = "$(VCTOOLSINSTALLDIR)bin\Host$(HOSTARCH)\x86\dumpbin.exe"
+RC      = rc.exe
 
 # Hookshot picks this up as ogg-winmm.HookModule.32.dll, beside the game.
 DLL = ogg-winmm.HookModule.32.dll
@@ -26,11 +31,6 @@ OBJS     = obj\ogg-winmm.obj obj\player.obj obj\hookshot_stubs.obj obj\hookshot_
 RC_IN  = ogg-winmm.rc.in
 GEN_RC = obj\ogg-winmm.gen.rc
 RES    = obj\ogg-winmm.res
-
-SDK_INCS = /I"$(MSVC_TOOLSET)\include" \
-           /I"$(SDK_ROOT)\Include\$(SDK_VER)\ucrt" \
-           /I"$(SDK_ROOT)\Include\$(SDK_VER)\shared" \
-           /I"$(SDK_ROOT)\Include\$(SDK_VER)\um"
 
 # ---------------------------------------------------------------- deps
 
@@ -46,7 +46,7 @@ VOR_VER = 1.3.7
 OGG_SRCS  = $(OGG_DIR)\src\bitwise.c $(OGG_DIR)\src\framing.c
 OGG_OBJS  = $(DEPOBJ)\libogg\bitwise.obj $(DEPOBJ)\libogg\framing.obj
 
-# The upstream VS2010 source list; barkmel/psytune/tone are excluded there too.
+# Upstream VS2010 list (barkmel/psytune/tone excluded there too).
 VOR_SRCS = $(VOR_DIR)\lib\analysis.c $(VOR_DIR)\lib\bitrate.c $(VOR_DIR)\lib\block.c \
            $(VOR_DIR)\lib\codebook.c $(VOR_DIR)\lib\envelope.c $(VOR_DIR)\lib\floor0.c \
            $(VOR_DIR)\lib\floor1.c $(VOR_DIR)\lib\info.c $(VOR_DIR)\lib\lookup.c \
@@ -73,10 +73,13 @@ FILE_OBJS = $(DEPOBJ)\libvorbisfile\vorbisfile.obj
 DEPS_LIBS = $(DEPLIB)\libogg.lib $(DEPLIB)\libvorbis.lib $(DEPLIB)\libvorbisfile.lib
 
 DEP_CFLAGS = /nologo /c /W3 /O2 /MD /DNDEBUG /DWIN32 \
-             /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS $(SDK_INCS) \
+             /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS \
              /I"$(OGG_DIR)\include" /I"$(VOR_DIR)\include" /I"$(VOR_DIR)\lib"
 
-MOD_INCS = $(SDK_INCS) /IHookshot\Include\Hookshot /I"$(OGG_DIR)\include" /I"$(VOR_DIR)\include"
+# ---------------------------------------------------------------- module
+
+# CRT/SDK headers come from INCLUDE; only project includes are named here.
+MOD_INCS = /IHookshot\Include\Hookshot /I"$(OGG_DIR)\include" /I"$(VOR_DIR)\include"
 
 CFLAGS = /nologo /c /W3 /O2 /MD /DNDEBUG /DWIN32 \
          /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS $(MOD_INCS)
@@ -84,7 +87,6 @@ CFLAGS = /nologo /c /W3 /O2 /MD /DNDEBUG /DWIN32 \
 # /MD matches the Hookshot DLL; /std:c++20 for the concepts in HookshotInterface.h.
 CXXFLAGS = /nologo /c /TP /W3 /O2 /MD /DNDEBUG /EHsc /std:c++20 $(MOD_INCS)
 
-# The first six came from the MinGW link line; the rest MSVC needs explicitly.
 LIBS = winmm.lib user32.lib gdi32.lib advapi32.lib ole32.lib shell32.lib \
        "$(DEPLIB)\libvorbisfile.lib" "$(DEPLIB)\libvorbis.lib" "$(DEPLIB)\libogg.lib"
 
@@ -130,7 +132,7 @@ $(GEN_RC): $(RC_IN) resource\version.txt
 	@call build.bat --genrc
 
 $(RES): $(GEN_RC) obj
-	$(RC) /nologo /I"$(SDK_ROOT)\Include\$(SDK_VER)\um" /I"$(SDK_ROOT)\Include\$(SDK_VER)\shared" /fo$(RES) $(GEN_RC)
+	$(RC) /nologo /fo$(RES) $(GEN_RC)
 
 obj\ogg-winmm.obj: ogg-winmm.c $(HDRS) obj
 	$(CL) $(CFLAGS) /Fo$@ ogg-winmm.c
@@ -148,11 +150,12 @@ $(DLL): $(OBJS) $(RES) $(DEPS_LIBS)
 	$(CL) /nologo /Fe$(DLL) $(OBJS) $(RES) /link /DLL /MACHINE:X86 /OPT:REF /OPT:ICF /INCREMENTAL:NO \
 	    /IMPLIB:obj\ogg-winmm.HookModule.32.lib $(LIBS)
 	@$(DUMPBIN) /exports $(DLL) | findstr /C:"HookshotMain" >NUL || (echo Error: HookshotMain is not exported from $(DLL) & exit 1)
+	@$(DUMPBIN) /headers $(DLL) | findstr /C:"14C machine" >NUL || (echo Error: $(DLL) is not a 32-bit binary & exit 1)
 	@(where upx >NUL 2>&1 && upx --best $(DLL)) || echo   upx not found or failed - leaving the DLL unpacked
 
 rebuild:
-	$(MAKE) /NOLOGO /f build.nmake clean
-	$(MAKE) /NOLOGO /f build.nmake
+	$(MAKE) /NOLOGO /f build.nmake clean HOSTARCH=$(HOSTARCH)
+	$(MAKE) /NOLOGO /f build.nmake HOSTARCH=$(HOSTARCH)
 
 clean:
 	@if exist obj rmdir /s /q obj
