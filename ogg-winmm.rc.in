@@ -1,5 +1,11 @@
 1 VERSIONINFO
 FILEVERSION __REV__
+PRODUCTVERSION __REV__
+FILEFLAGSMASK 0x3fL
+FILEFLAGS 0x0L
+FILEOS 0x40004L
+FILETYPE 0x2L
+FILESUBTYPE 0x0L
 {
     BLOCK "StringFileInfo"
     {
@@ -7,6 +13,7 @@ FILEVERSION __REV__
         {
             VALUE "ProductName", "ogg-winmm HookModule"
             VALUE "ProductVersion", "__REV__"
+            VALUE "FileVersion", "__REV__"
             VALUE "InternalName", "ogg-winmm HookModule"
             VALUE "LegalCopyright", "AyuanX, samuelgr and everyone else!"
             VALUE "OriginalFileName", "ogg-winmm.HookModule.32.dll"

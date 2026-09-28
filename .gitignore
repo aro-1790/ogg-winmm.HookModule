@@ -2,4 +2,14 @@
 *.sh
 release/
 *.o
-ogg-winmm.HookModule.32.dll
+*.dll
+
+# MSVC build outputs
+obj/
+*.obj
+*.res
+*.exp
+*.pdb
+
+# Vendored ogg/vorbis sources, restored by build.bat fetch
+deps/

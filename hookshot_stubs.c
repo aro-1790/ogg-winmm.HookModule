@@ -2,6 +2,15 @@
 #include "player.h"
 #include "stub.h"
 
+/* Caller address: GCC builtin, MSVC _ReturnAddress(). Identifies the calling
+   module in fake_waveOutWrite. */
+#if defined(_MSC_VER)
+#  include <intrin.h>
+#  define STUB_RETURN_ADDRESS() ((void *)_ReturnAddress())
+#else
+#  define STUB_RETURN_ADDRESS() __builtin_return_address(0)
+#endif
+
 /* Populated at module load by hookshot_entry.cpp. */
 MCIERROR (WINAPI *orig_mciSendCommandA)(MCIDEVICEID, UINT, DWORD, DWORD) = NULL;
 MCIERROR (WINAPI *orig_mciSendStringA)(LPCSTR, LPSTR, UINT, HWND) = NULL;
@@ -35,7 +44,7 @@ MMRESULT WINAPI fake_waveOutOpen(LPHWAVEOUT a0, UINT a1, LPCWAVEFORMATEX a2, DWO
 MMRESULT WINAPI fake_waveOutWrite(HWAVEOUT a0, LPWAVEHDR a1, UINT a2)
 {
 	if ((waveVol != 1.0 || midiVol != 1.0 ) && a1 && a1->lpData && a1->dwUser != 0xCDDA7777) {
-		void *addr = __builtin_return_address(0);
+		void *addr = STUB_RETURN_ADDRESS();
 		char caller[MAX_PATH];
 		MEMORY_BASIC_INFORMATION mbi;
 		VirtualQuery(addr, &mbi, sizeof(MEMORY_BASIC_INFORMATION));

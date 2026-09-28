@@ -1,0 +1,159 @@
+# ogg-winmm.HookModule - 32-bit Hookshot hook module, built with MSVC.
+# Run build.bat; nmake /f build.nmake also works from this directory.
+#
+# The pinned paths below are the only thing to edit, or override them:
+#   nmake /f build.nmake MSVC_TOOLSET=C:\other\VC\Tools\MSVC\14.xx
+# ------------------------------------------------------------------
+
+MSVC_TOOLSET = C:\MSVC\VC\Tools\MSVC\14.40.33807
+SDK_ROOT     = C:\MSVC\Windows Kits\10
+SDK_VER      = 10.0.26100.0
+
+# x86 is pinned by path: `where cl` would also match the x64-hosted one.
+CL       = "$(MSVC_TOOLSET)\bin\Hostx64\x86\cl.exe"
+LIBEXE   = "$(MSVC_TOOLSET)\bin\Hostx64\x86\lib.exe"
+DUMPBIN  = "$(MSVC_TOOLSET)\bin\Hostx64\x86\dumpbin.exe"
+RC       = "$(SDK_ROOT)\bin\$(SDK_VER)\x64\rc.exe"
+
+# Hookshot picks this up as ogg-winmm.HookModule.32.dll, beside the game.
+DLL = ogg-winmm.HookModule.32.dll
+
+C_SRCS   = ogg-winmm.c player.c hookshot_stubs.c
+CXX_SRCS = hookshot_entry.cpp
+HDRS     = player.h stub.h
+OBJS     = obj\ogg-winmm.obj obj\player.obj obj\hookshot_stubs.obj obj\hookshot_entry.obj
+
+RC_IN  = ogg-winmm.rc.in
+GEN_RC = obj\ogg-winmm.gen.rc
+RES    = obj\ogg-winmm.res
+
+SDK_INCS = /I"$(MSVC_TOOLSET)\include" \
+           /I"$(SDK_ROOT)\Include\$(SDK_VER)\ucrt" \
+           /I"$(SDK_ROOT)\Include\$(SDK_VER)\shared" \
+           /I"$(SDK_ROOT)\Include\$(SDK_VER)\um"
+
+# ---------------------------------------------------------------- deps
+
+DEPS_DIR = deps
+OGG_DIR  = $(DEPS_DIR)\libogg-1.3.5
+VOR_DIR  = $(DEPS_DIR)\libvorbis-1.3.7
+DEPOBJ   = obj\dep
+DEPLIB   = $(DEPS_DIR)\lib
+
+OGG_VER = 1.3.5
+VOR_VER = 1.3.7
+
+OGG_SRCS  = $(OGG_DIR)\src\bitwise.c $(OGG_DIR)\src\framing.c
+OGG_OBJS  = $(DEPOBJ)\libogg\bitwise.obj $(DEPOBJ)\libogg\framing.obj
+
+# The upstream VS2010 source list; barkmel/psytune/tone are excluded there too.
+VOR_SRCS = $(VOR_DIR)\lib\analysis.c $(VOR_DIR)\lib\bitrate.c $(VOR_DIR)\lib\block.c \
+           $(VOR_DIR)\lib\codebook.c $(VOR_DIR)\lib\envelope.c $(VOR_DIR)\lib\floor0.c \
+           $(VOR_DIR)\lib\floor1.c $(VOR_DIR)\lib\info.c $(VOR_DIR)\lib\lookup.c \
+           $(VOR_DIR)\lib\lpc.c $(VOR_DIR)\lib\lsp.c $(VOR_DIR)\lib\mapping0.c \
+           $(VOR_DIR)\lib\mdct.c $(VOR_DIR)\lib\psy.c $(VOR_DIR)\lib\registry.c \
+           $(VOR_DIR)\lib\res0.c $(VOR_DIR)\lib\sharedbook.c $(VOR_DIR)\lib\smallft.c \
+           $(VOR_DIR)\lib\synthesis.c $(VOR_DIR)\lib\vorbisenc.c $(VOR_DIR)\lib\window.c
+
+VOR_OBJS = $(DEPOBJ)\libvorbis\analysis.obj $(DEPOBJ)\libvorbis\bitrate.obj \
+           $(DEPOBJ)\libvorbis\block.obj $(DEPOBJ)\libvorbis\codebook.obj \
+           $(DEPOBJ)\libvorbis\envelope.obj $(DEPOBJ)\libvorbis\floor0.obj \
+           $(DEPOBJ)\libvorbis\floor1.obj $(DEPOBJ)\libvorbis\info.obj \
+           $(DEPOBJ)\libvorbis\lookup.obj $(DEPOBJ)\libvorbis\lpc.obj \
+           $(DEPOBJ)\libvorbis\lsp.obj $(DEPOBJ)\libvorbis\mapping0.obj \
+           $(DEPOBJ)\libvorbis\mdct.obj $(DEPOBJ)\libvorbis\psy.obj \
+           $(DEPOBJ)\libvorbis\registry.obj $(DEPOBJ)\libvorbis\res0.obj \
+           $(DEPOBJ)\libvorbis\sharedbook.obj $(DEPOBJ)\libvorbis\smallft.obj \
+           $(DEPOBJ)\libvorbis\synthesis.obj $(DEPOBJ)\libvorbis\vorbisenc.obj \
+           $(DEPOBJ)\libvorbis\window.obj
+
+FILE_SRCS = $(VOR_DIR)\lib\vorbisfile.c
+FILE_OBJS = $(DEPOBJ)\libvorbisfile\vorbisfile.obj
+
+DEPS_LIBS = $(DEPLIB)\libogg.lib $(DEPLIB)\libvorbis.lib $(DEPLIB)\libvorbisfile.lib
+
+DEP_CFLAGS = /nologo /c /W3 /O2 /MD /DNDEBUG /DWIN32 \
+             /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS $(SDK_INCS) \
+             /I"$(OGG_DIR)\include" /I"$(VOR_DIR)\include" /I"$(VOR_DIR)\lib"
+
+MOD_INCS = $(SDK_INCS) /IHookshot\Include\Hookshot /I"$(OGG_DIR)\include" /I"$(VOR_DIR)\include"
+
+CFLAGS = /nologo /c /W3 /O2 /MD /DNDEBUG /DWIN32 \
+         /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS $(MOD_INCS)
+
+# /MD matches the Hookshot DLL; /std:c++20 for the concepts in HookshotInterface.h.
+CXXFLAGS = /nologo /c /TP /W3 /O2 /MD /DNDEBUG /EHsc /std:c++20 $(MOD_INCS)
+
+# The first six came from the MinGW link line; the rest MSVC needs explicitly.
+LIBS = winmm.lib user32.lib gdi32.lib advapi32.lib ole32.lib shell32.lib \
+       "$(DEPLIB)\libvorbisfile.lib" "$(DEPLIB)\libvorbis.lib" "$(DEPLIB)\libogg.lib"
+
+# ---------------------------------------------------------------- targets
+
+all: $(DLL)
+
+deps: $(DEPS_LIBS)
+
+fetch:
+	@if not exist $(DEPS_DIR) mkdir $(DEPS_DIR)
+	@if not exist "$(OGG_DIR)" echo === fetching libogg $(OGG_VER) ===
+	@if not exist "$(OGG_DIR)" curl -fsSL -o deps\libogg.tar.gz https://downloads.xiph.org/releases/ogg/libogg-$(OGG_VER).tar.gz
+	@if not exist "$(OGG_DIR)" tar -xzf deps\libogg.tar.gz -C deps
+	@if not exist "$(VOR_DIR)" echo === fetching libvorbis $(VOR_VER) ===
+	@if not exist "$(VOR_DIR)" curl -fsSL -o deps\libvorbis.tar.gz https://downloads.xiph.org/releases/vorbis/libvorbis-$(VOR_VER).tar.gz
+	@if not exist "$(VOR_DIR)" tar -xzf deps\libvorbis.tar.gz -C deps
+	@if exist deps\*.tar.gz del /q deps\*.tar.gz
+	@echo deps\ ready.
+
+obj:
+	@if not exist obj mkdir obj
+
+$(DEPLIB)\libogg.lib: $(OGG_SRCS)
+	@if not exist $(DEPOBJ)\libogg mkdir $(DEPOBJ)\libogg
+	@if not exist $(DEPLIB) mkdir $(DEPLIB)
+	@$(CL) $(DEP_CFLAGS) /Fo$(DEPOBJ)\libogg\ $(OGG_SRCS)
+	@$(LIBEXE) /nologo /OUT:$@ $(OGG_OBJS)
+
+$(DEPLIB)\libvorbis.lib: $(VOR_SRCS)
+	@if not exist $(DEPOBJ)\libvorbis mkdir $(DEPOBJ)\libvorbis
+	@if not exist $(DEPLIB) mkdir $(DEPLIB)
+	@$(CL) $(DEP_CFLAGS) /Fo$(DEPOBJ)\libvorbis\ $(VOR_SRCS)
+	@$(LIBEXE) /nologo /OUT:$@ $(VOR_OBJS)
+
+$(DEPLIB)\libvorbisfile.lib: $(FILE_SRCS)
+	@if not exist $(DEPOBJ)\libvorbisfile mkdir $(DEPOBJ)\libvorbisfile
+	@if not exist $(DEPLIB) mkdir $(DEPLIB)
+	@$(CL) $(DEP_CFLAGS) /Fo$(DEPOBJ)\libvorbisfile\ $(FILE_SRCS)
+	@$(LIBEXE) /nologo /OUT:$@ $(FILE_OBJS)
+
+$(GEN_RC): $(RC_IN) resource\version.txt
+	@call build.bat --genrc
+
+$(RES): $(GEN_RC) obj
+	$(RC) /nologo /I"$(SDK_ROOT)\Include\$(SDK_VER)\um" /I"$(SDK_ROOT)\Include\$(SDK_VER)\shared" /fo$(RES) $(GEN_RC)
+
+obj\ogg-winmm.obj: ogg-winmm.c $(HDRS) obj
+	$(CL) $(CFLAGS) /Fo$@ ogg-winmm.c
+
+obj\player.obj: player.c $(HDRS) obj
+	$(CL) $(CFLAGS) /Fo$@ player.c
+
+obj\hookshot_stubs.obj: hookshot_stubs.c $(HDRS) obj
+	$(CL) $(CFLAGS) /Fo$@ hookshot_stubs.c
+
+obj\hookshot_entry.obj: hookshot_entry.cpp $(HDRS) obj
+	$(CL) $(CXXFLAGS) /Fo$@ hookshot_entry.cpp
+
+$(DLL): $(OBJS) $(RES) $(DEPS_LIBS)
+	$(CL) /nologo /Fe$(DLL) $(OBJS) $(RES) /link /DLL /MACHINE:X86 /OPT:REF /OPT:ICF /INCREMENTAL:NO \
+	    /IMPLIB:obj\ogg-winmm.HookModule.32.lib $(LIBS)
+	@$(DUMPBIN) /exports $(DLL) | findstr /C:"HookshotMain" >NUL || (echo Error: HookshotMain is not exported from $(DLL) & exit 1)
+	@(where upx >NUL 2>&1 && upx --best $(DLL)) || echo   upx not found or failed - leaving the DLL unpacked
+
+rebuild:
+	$(MAKE) /NOLOGO /f build.nmake clean
+	$(MAKE) /NOLOGO /f build.nmake
+
+clean:
+	@if exist obj rmdir /s /q obj
+	@if exist $(DLL) del /q $(DLL)

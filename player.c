@@ -8,6 +8,13 @@
 #define WAV_BUF_TME	(1000)				// The expected playtime of the buffer in milliseconds: 1000ms
 #define WAV_BUF_LEN	(44100*2*2*(WAV_BUF_TME/1000))	// 44100Hz, 16-bit, 2-channel, 1 second buffer
 
+// MSVC needs __declspec ahead of the declarator; GCC takes the attribute after.
+#if defined(_MSC_VER)
+#  define PLR_ALIGNED(n) __declspec(align(n))
+#else
+#  define PLR_ALIGNED(n) __attribute__((aligned(n)))
+#endif
+
 bool		plr_run			= false;
 bool		plr_bsy			= false;
 unsigned int	plr_len			= 0;
@@ -20,7 +27,7 @@ WAVEFORMATEX	plr_fmt			= {0};
 int		plr_que			= 0;
 int		plr_sta[WAV_BUF_CNT]	= {0};
 WAVEHDR		plr_hdr[WAV_BUF_CNT]	= {0};
-char		plr_buf[WAV_BUF_CNT][WAV_BUF_LEN] __attribute__ ((aligned(4)));
+PLR_ALIGNED(4) char plr_buf[WAV_BUF_CNT][WAV_BUF_LEN];
 
 void plr_volume(int vol_l, int vol_r)
 {
