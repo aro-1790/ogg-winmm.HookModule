@@ -2,7 +2,7 @@
 rem ogg-winmm.HookModule build entry point: generates the version resource from
 rem resource\version.txt, then hands the build to nmake.
 rem
-rem   build.bat [build | clean | rebuild | fetch | deps | --genrc]
+rem   build.bat [build | clean | rebuild | fetch | deps]
 rem
 rem The pinned toolchain below is used only if nmake is not already on PATH.
 setlocal
@@ -12,6 +12,7 @@ set "GEN_RC=obj\ogg-winmm.gen.rc"
 set "RC_IN=ogg-winmm.rc.in"
 set "VER_FILE=resource\version.txt"
 
+rem build.nmake calls this to regenerate the resource after a clean; not a user subcommand.
 if /i "%~1"=="--genrc" goto genrc
 
 rem Overridable so the script follows the same pin as build.nmake.
