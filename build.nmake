@@ -89,7 +89,7 @@ MOD_INCS = /IHookshot\Include\Hookshot /I"$(OGG_DIR)\include" /I"$(VOR_DIR)\incl
 CFLAGS = /nologo /c /W3 /O2 /MD /DNDEBUG /DWIN32 \
          /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS $(MOD_INCS)
 
-# /MD matches the Hookshot DLL; /std:c++20 for the concepts in HookshotInterface.h.
+# /std:c++20 for the concepts in HookshotInterface.h.
 CXXFLAGS = /nologo /c /TP /W3 /O2 /MD /DNDEBUG /EHsc /std:c++20 $(MOD_INCS)
 
 LIBS = winmm.lib user32.lib gdi32.lib advapi32.lib ole32.lib shell32.lib \

@@ -13,6 +13,7 @@ A breakdown of the actual changes:
 * **Bare minimum changes to core source:** A few necessary lines were changed in `ogg-winmm.c` due to changes in the execution- the settings file now has a hardcoded name, `ogg-winmm.ini`
 * **Hookshot integration:** Adds glue C++ to register hooks and a Hookshot-specific stubs file to handle those bouncy trampolines for `mci` and `waveOut` calls
 * **Build system changes:** Removed unnecessary files and updated for a dual-stage C/C++ build- uses UPX compression
+* **VC++ 2022 redistributable:** The [x86 redist](https://aka.ms/vc14/vc_redist.x86.exe) is needed for operation
 
 # Original readme (some details may not be applicable!)
 
