@@ -15,6 +15,15 @@ A breakdown of the actual changes:
 * **Build system changes:** Removed unnecessary files and updated for a dual-stage C/C++ build- uses UPX compression
 * **VC++ 2022 redistributable:** The [x86 redist](https://aka.ms/vc14/vc_redist.x86.exe) is needed for operation
 
+# Building this fork:
+
+* It uses NMAKE for now, my toolchain (being minimal and all) didn't have MSBuild, and I didn't want to work out how to get that going; also didn't feel like getting CMake for unserious projects such as this
+* The below was only tested against my portablemsvc-installed VC++ 2022 toolchain (system registered) and my girlfriend's honest-to-goodness Visual Studio 2022 install (where the batchfile inherits the Developer Command Prompt environment instead)
+* In both tests, it was run interactively with a double-click in Explorer
+* It can also be run non-interactively (`build.bat build` / `build.bat clean` / `build.bat fetch`) if that's your kind of thing
+* On a fresh clone, run `fetch` once before building - I didn't keep the ogg/vorbis sources in the repo, and they are hard dependencies!
+* If the toolchain variables don't exist on system (normal for an official install) and `build.bat` can't find a Developer Command Prompt with `vswhere`, try running it in the Developer Command Prompt directly - it might just work then!
+
 # Original readme (some details may not be applicable!)
 
 ogg-winmm is a wrapper of "winmm.dll", which is used by many games and programs to play CD-DA audio tracks.

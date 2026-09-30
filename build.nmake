@@ -3,33 +3,41 @@
 # Target is always x86; nmake upcases env names.
 # ------------------------------------------------------------------
 
-# Target = the \x86\ half of the tool path; the host half is whichever one is installed.
-# build.bat picks an installed host, so this default only covers a bare `nmake`.
+# Host toolset: the 64-bit host first, the 32-bit host as fallback. The target is
+# always x86, so only the \x86\ half of the tool path is resolved.
 !IFNDEF HOSTARCH
-!IFDEF PROCESSOR_ARCHITEW6432
+HOSTARCH =
+!IF EXIST("$(VCTOOLSINSTALLDIR)bin\Hostx64\x86\cl.exe")
 HOSTARCH = x64
-!ELSEIF "$(PROCESSOR_ARCHITECTURE)" == "x86"
+!ELSEIF EXIST("$(VCTOOLSINSTALLDIR)bin\Hostx86\x86\cl.exe")
 HOSTARCH = x86
-!ELSE
-HOSTARCH = x64
 !ENDIF
 !ENDIF
 
 CL      = "$(VCTOOLSINSTALLDIR)bin\Host$(HOSTARCH)\x86\cl.exe"
 LIBEXE  = "$(VCTOOLSINSTALLDIR)bin\Host$(HOSTARCH)\x86\lib.exe"
-DUMPBIN = "$(VCTOOLSINSTALLDIR)bin\Host$(HOSTARCH)\x86\dumpbin.exe"
-RC      = rc.exe
+LINK    = "$(VCTOOLSINSTALLDIR)bin\Host$(HOSTARCH)\x86\link.exe"
+
+# rc.exe comes from the SDK, whose bin dir carries an x86 or an x64 host subdir
+# depending on which pieces of the SDK are installed.
+!IF EXIST("$(WINDOWSSDKDIR)Bin\$(WINDOWSSDKVERSION)\x86\rc.exe")
+RC = "$(WINDOWSSDKDIR)Bin\$(WINDOWSSDKVERSION)\x86\rc.exe"
+!ELSE
+RC = "$(WINDOWSSDKDIR)Bin\$(WINDOWSSDKVERSION)\x64\rc.exe"
+!ENDIF
+
+# Library roots, named once: the link path and the availability gate both use them.
+VCLIB  = $(VCTOOLSINSTALLDIR)lib
+SDKLIB = $(WINDOWSSDKDIR)Lib\$(WINDOWSSDKVERSION)
 
 # LIB lists x86 first, so the link names its own library directories.
-LIBPATH = /LIBPATH:"$(VCTOOLSINSTALLDIR)lib\x86" \
-          /LIBPATH:"$(WINDOWSSDKDIR)Lib\$(WINDOWSSDKVERSION)\ucrt\x86" \
-          /LIBPATH:"$(WINDOWSSDKDIR)Lib\$(WINDOWSSDKVERSION)\um\x86"
+LIBPATH = /LIBPATH:"$(VCLIB)\x86" \
+          /LIBPATH:"$(SDKLIB)\ucrt\x86" \
+          /LIBPATH:"$(SDKLIB)\um\x86"
 
 # Hookshot picks this up as ogg-winmm.HookModule.32.dll, beside the game.
 DLL = ogg-winmm.HookModule.32.dll
 
-C_SRCS   = ogg-winmm.c player.c hookshot_stubs.c
-CXX_SRCS = hookshot_entry.cpp
 HDRS     = player.h stub.h
 OBJS     = obj\ogg-winmm.obj obj\player.obj obj\hookshot_stubs.obj obj\hookshot_entry.obj
 
@@ -97,9 +105,22 @@ LIBS = winmm.lib user32.lib gdi32.lib advapi32.lib ole32.lib shell32.lib \
 
 # ---------------------------------------------------------------- targets
 
+# The target needs a compiler that can emit x86 code plus the libraries from both
+# the toolset and the SDK.
+X86_LIBS =
+!IF EXIST("$(VCLIB)\x86") && EXIST("$(SDKLIB)\ucrt\x86") && EXIST("$(SDKLIB)\um\x86")
+X86_LIBS = 1
+!ENDIF
+
 all: $(DLL)
 
-deps: $(DEPS_LIBS)
+toolchain:
+	@if "$(VCTOOLSINSTALLDIR)"=="" (echo Error: no toolchain environment - run build.bat, or activate one first & exit 1)
+	@if "$(HOSTARCH)"=="" (echo Error: no x86-targeting host toolset under "$(VCTOOLSINSTALLDIR)bin" - expected Hostx64\x86 or Hostx86\x86 & exit 1)
+	@if "$(X86_LIBS)"=="" (echo Error: no 32-bit libraries - the toolset lib\x86 or the SDK ucrt\x86 and um\x86 are missing & exit 1)
+	@if not exist $(RC) (echo Error: no rc.exe under "$(WINDOWSSDKDIR)Bin\$(WINDOWSSDKVERSION)" - run build.bat, or activate one first & exit 1)
+
+deps: toolchain $(DEPS_LIBS)
 
 fetch:
 	@if not exist $(DEPS_DIR) mkdir $(DEPS_DIR)
@@ -151,17 +172,14 @@ obj\hookshot_stubs.obj: hookshot_stubs.c $(HDRS) obj
 obj\hookshot_entry.obj: hookshot_entry.cpp $(HDRS) obj
 	$(CL) $(CXXFLAGS) /Fo$@ hookshot_entry.cpp
 
-$(DLL): $(OBJS) $(RES) $(DEPS_LIBS)
+$(DLL): toolchain $(OBJS) $(RES) $(DEPS_LIBS)
 	$(CL) /nologo /Fe$(DLL) $(OBJS) $(RES) /link /DLL /MACHINE:X86 \
 	    /IMPLIB:obj\ogg-winmm.HookModule.32.lib $(LIBS) $(LIBPATH)
-	@$(DUMPBIN) /exports $(DLL) | findstr /C:"HookshotMain" >NUL || (echo Error: HookshotMain is not exported from $(DLL) & exit 1)
-	@$(DUMPBIN) /headers $(DLL) | findstr /C:"14C machine" >NUL || (echo Error: $(DLL) is not a 32-bit binary & exit 1)
+	@$(LINK) /dump /exports $(DLL) | findstr /C:"HookshotMain" >NUL || (echo Error: HookshotMain is not exported from $(DLL) & exit 1)
+	@$(LINK) /dump /headers $(DLL) | findstr /C:"14C machine" >NUL || (echo Error: $(DLL) is not a 32-bit binary & exit 1)
 	@(where upx >NUL 2>&1 && upx --best $(DLL)) || echo   upx not found or failed - leaving the DLL unpacked
 
-rebuild:
-	$(MAKE) /NOLOGO /f build.nmake clean HOSTARCH=$(HOSTARCH)
-	$(MAKE) /NOLOGO /f build.nmake HOSTARCH=$(HOSTARCH)
-
 clean:
-	@if exist obj rmdir /s /q obj
-	@if exist $(DLL) del /q $(DLL)
+	@if not exist obj if not exist $(DLL) echo   nothing to remove
+	@if exist obj (rmdir /s /q obj & echo   removed obj\)
+	@if exist $(DLL) (del /q $(DLL) & echo   removed $(DLL))
