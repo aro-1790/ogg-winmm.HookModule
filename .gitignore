@@ -12,3 +12,4 @@ obj/
 
 # Vendored ogg/vorbis sources, restored by build.bat fetch
 deps/
+.pi/
