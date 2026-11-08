@@ -20,3 +20,4 @@
 # Renamed files take upstream's content in full via rename detection
 #   resource/winmm.ini -> resource/ogg-winmm.ini
 #   LICENSE.txt        -> LICENSE-GPL
+*.bat text eol=crlf
